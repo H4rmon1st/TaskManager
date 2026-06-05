@@ -1,0 +1,13 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+publish/
+deployment/
+TestResults/
+*.trx
+coverage/
+*.log
