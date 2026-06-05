@@ -29,7 +29,7 @@ jobs:
         continue-on-error: true
 
       - name: Build (Release)
-        run: dotnet build TaskManager.sln --configuration Release --no-restore /warnaserror-
+        run: dotnet build TaskManager.sln --configuration Release --no-restore
 
       - name: Run unit tests
         run: dotnet test TaskManager.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
