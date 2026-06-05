@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-test-deploy:
+    name: Build, Test, Analyze, Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore TaskManager.sln
+
+      - name: Static code analysis (dotnet format)
+        run: dotnet format TaskManager.sln --verify-no-changes --severity warn --verbosity diagnostic
+        continue-on-error: true
+
+      - name: Build (Release)
+        run: dotnet build TaskManager.sln --configuration Release --no-restore /warnaserror-
+
+      - name: Run unit tests
+        run: dotnet test TaskManager.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/test-results.trx'
+
+      - name: Publish CLI
+        run: dotnet publish src/TaskManager.Cli/TaskManager.Cli.csproj --configuration Release --no-build --output ./publish
+
+      - name: Upload published artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: taskman-cli
+          path: ./publish
+
+      - name: Deploy (copy artifacts to deployment folder)
+        run: |
+          mkdir -p ./deployment/taskman-$(date +%Y%m%d-%H%M%S)
+          cp -r ./publish/* ./deployment/taskman-$(date +%Y%m%d-%H%M%S)/
+          echo "Deployed to: ./deployment/"
+          ls -la ./deployment/
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment
+          path: ./deployment
